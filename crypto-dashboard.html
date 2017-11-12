@@ -1,25 +1,88 @@
-<link rel="import" href="/bower_components/polymer/polymer-element.html"> 
+<link rel="import" href="/bower_components/polymer/polymer-element.html">
+<link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
+
 <dom-module id="crypto-dashboard">
-    
+
     <template>
-            <style>
-                    :host {
-                      display: block;
-                    }
-                  </style>
+        <style>
+             :host {
+                display: block;
+            }
+        </style>
         <h2>Hello [[prop1]]</h2>
+
+
+        <iron-ajax id="coinbase" auto url="" handle-as="json" on-response="_handleResponse"></iron-ajax>
+        <template is="dom-repeat" items="[[currencies]]">
+                <p>
+                        [[item.code]] - [[item.name]] - $[[item.price]]
+                </p>
+        </template>
+        
+        
     </template>
     <script>
-        class CryptoDashboard extends Polymer.Element{
-            static get is() { return "crypto-dashboard";}
+        class CryptoDashboard extends Polymer.Element {
+            static get is() {
+                return "crypto-dashboard";
+            }
             static get properties() {
                 return {
-                  prop1: {
-                    type: String,
-                    value: 'default value'
-                  }
+                    currencies: {
+                        type: Array,
+                        value: [{
+                                code: 'BTC',
+                                name: 'Bitcoin',
+                                price: 0
+
+                            },{
+                                code:'ETH',
+                                name: 'Ethereum',
+                                price: 0
+                                
+                            },{
+                                code:'LTC',
+                                name:'Litecoin',
+                                price: 0
+                                
+                            }
+                        ]
+                    },
+                    prop1: {
+                        type: String,
+                        value: 'default value'
+                    }
                 };
-              }
+            }
+            ready(){
+                super.ready();
+                Polymer.RenderStatus.afterNextRender(this,function(){
+                    this._getCurrentData();
+                });
+            }
+            _getCurrentData(){
+                var ajax = this.$.coinbase;
+                var currencies = this.currencies;
+                currencies.forEach(function(element, key){
+                    ajax.url = "https://api.coinbase.com/v2/prices/" +element.code + '-USD/spot';
+                    ajax.generateRequest();
+
+                }, this)
+            }
+
+            _handleResponse(response){
+                console.log(response);
+                this._computeCurrencyPrice(response.detail);
+
+            }
+
+            _computeCurrencyPrice(data){
+                var code = data.url.substring(35,38);
+                var index = this.currencies.map(function(e){return e.code;}).indexOf(code);
+                this.set('currencies.' + index + '.price', data.response.data.amount);
+
+            }
+
         }
 
         window.customElements.define(CryptoDashboard.is, CryptoDashboard);
